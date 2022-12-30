@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Exit build script on first failure.
+set -e
+
+# Exit on unset variable.
+set -u
+
+is_litestream_enabled() {
+  set +ux
+
+  local IS_ENABLED='false'
+
+  if [[ -n "${DB_REPLICA_URL}" ]]; then
+    IS_ENABLED='true';
+  fi
+
+  set -ux
+
+  echo "${IS_ENABLED}"
+}
+
+IS_LITESTREAM_ENABLED="$(is_litestream_enabled)"
+readonly IS_LITESTREAM_ENABLED
+
+# Echo commands to stdout.
+set -x
+
+if [[ "${IS_LITESTREAM_ENABLED}" == 'true' ]]; then
+
+  export readonly DB_PATH="/app/data/store.db"
+
+  # Restore database from S3.
+  /app/litestream restore -if-replica-exists -v "${DB_PATH}"
+
+  # Let Litestream start LogPaste as a child process
+  /app/litestream replicate \
+    -exec "pnpm start"
+    "${DB_PATH}" \
+    "${DB_REPLICA_URL}"
+else
+  # Start server.
+  eval "pnpm start"
+fi

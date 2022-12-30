@@ -1,0 +1,13 @@
+---
+version: "3.7"
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    volumes:
+      - ./prisma:/prisma
+    environment:
+      PORT: 3000
+    env_file:
+      - .env
